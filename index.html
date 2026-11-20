@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LLM API Cost Calculator &amp; llms.txt Generator — Free, No Upload</title>
+<meta name="description" content="Work out what an LLM feature costs per request, day, month and year across OpenAI, Anthropic, Google and DeepSeek — then generate a spec-correct llms.txt for AI crawlers. Runs entirely in your browser.">
+<link rel="canonical" href="https://marcj81.github.io/llm-cost-llms-txt/">
+<meta name="robots" content="index, follow">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#4f46e5">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="LLM Cost &amp; llms.txt">
+<meta property="og:title" content="LLM API Cost Calculator &amp; llms.txt Generator">
+<meta property="og:description" content="Price your token profile across four providers and publish a clean llms.txt. No account, no upload, no tracking.">
+<meta property="og:url" content="https://marcj81.github.io/llm-cost-llms-txt/">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="LLM API Cost Calculator &amp; llms.txt Generator">
+<meta name="twitter:description" content="Compare LLM API costs for your own token profile and generate llms.txt in the browser.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preload" href="assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/styles.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebApplication",
+      "name": "LLM API Cost Calculator & llms.txt Generator",
+      "url": "https://marcj81.github.io/llm-cost-llms-txt/",
+      "applicationCategory": "DeveloperApplication",
+      "operatingSystem": "Any browser",
+      "browserRequirements": "Requires JavaScript",
+      "description": "Calculate LLM API cost per request, day, month and year for OpenAI, Anthropic, Google and DeepSeek models, reverse a monthly budget into requests, and generate a valid llms.txt or llms-full.txt file.",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+      "featureList": [
+        "Cost per request, day, month and year",
+        "Cached input discount modelling",
+        "Monthly budget reverse calculation",
+        "Editable and custom model prices",
+        "CSV and Markdown export",
+        "llms.txt and llms-full.txt generation",
+        "llms.txt structural validation"
+      ]
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "How is the monthly cost calculated?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Each request is priced from three parts: fresh input tokens at the input rate, the cached share of the input at the cached-input rate, and output tokens at the output rate. Prices are quoted per million tokens, so the per-request figure is divided by one million. That figure is multiplied by requests per day and by days per month, and the monthly figure is multiplied by twelve for the annual cost."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Are these the real list prices?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "The built-in prices were copied from each provider's public pricing page on 20 November 2026 and every field is editable, so you can match a contract rate or a price change. Models that have left the current price sheet are marked legacy and keep their last published list price. Always confirm billing-critical numbers with the provider."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What is a cached input token?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Providers let you reuse a prompt prefix that was sent recently — a system prompt or a document — and charge a lower rate for those tokens when they hit the cache. Enter the share of your input that repeats as the cached share; a share of zero prices everything as fresh input."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How accurate is the token estimate?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "The estimator uses the usual English rule of thumb: about four characters or 0.75 words per token. It is a planning aid, not a bill: tokenizers differ by model, and the newer Claude tokenizer produces roughly 30 percent more tokens for the same text. Paste real samples and check a provider-side counter for anything billing-critical."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is my data uploaded anywhere?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. The page has no backend, no analytics and no third-party scripts or fonts. Every calculation and the llms.txt generation happen in the browser tab, and the page keeps working after the network is switched off."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What is llms.txt?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "llms.txt is a Markdown file published at the root or a subpath of a site to give AI agents a short, clean index of what is there. It contains an H1 with the site or project name, a blockquote summary, optional prose, and H2 sections that list links to Markdown versions of the important pages."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What is the difference between llms.txt and llms-full.txt?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "llms.txt is the small index: an agent reads it, then fetches only the pages it needs. llms-full.txt is the expanded variant that carries the documentation text itself in one file so a single fetch is enough. This generator keeps section bodies out of llms.txt and includes them in llms-full.txt."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does llms.txt replace robots.txt or sitemap.xml?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. robots.txt says which crawlers may fetch what, sitemap.xml lists pages for search engines, and llms.txt is a curated guide for an agent that is already allowed in. A site usually wants all three, and can point at the file with a rel=\"describedby\" link."
+          }
+        }
+      ]
+    }
+  ]
+}
+</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="topbar">
+  <div class="wrap topbar-inner">
+    <a class="brand" href="./" aria-label="LLM Cost and llms.txt home">
+      <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+        <rect x="1" y="1" width="30" height="30" rx="9" fill="url(#bg)"/>
+        <path d="M9 21.5V17M15 21.5V12M21 21.5V8.5" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/>
+        <defs>
+          <linearGradient id="bg" x1="1" y1="1" x2="31" y2="31" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#6366f1"/><stop offset="1" stop-color="#0d9488"/>
+          </linearGradient>
+        </defs>
+      </svg>
+      <span class="brand-text">
+        <strong>LLM Cost</strong>
+        <span>&amp; llms.txt</span>
+      </span>
+    </a>
+
+    <nav class="tabs" role="tablist" aria-label="Tools">
+      <button class="tab" id="tab-cost" role="tab" aria-selected="true" aria-controls="panel-cost" data-tab="cost">
+        <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M2 12.5V9M8 12.5V5M14 12.5V2.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        Cost calculator
+      </button>
+      <button class="tab" id="tab-llms" role="tab" aria-selected="false" aria-controls="panel-llms" data-tab="llms" tabindex="-1">
+        <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M4 1.5h5l3 3v10H4zM9 1.5v3h3M6 8h4M6 10.5h4" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" fill="none"/></svg>
+        llms.txt generator
+      </button>
+    </nav>
+
+    <div class="topbar-actions">
+      <span class="local-chip" title="No network requests, no upload">
+        <span class="dot"></span> Runs in your browser
+      </span>
+      <button class="icon-btn" id="themeToggle" type="button" aria-label="Switch to dark theme" aria-pressed="false">
+        <svg class="icon-moon" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M16.5 12.4A7 7 0 0 1 7.6 3.5a7 7 0 1 0 8.9 8.9z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+        <svg class="icon-sun" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><circle cx="10" cy="10" r="3.6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M10 1.8v2M10 16.2v2M1.8 10h2M16.2 10h2M4.2 4.2l1.4 1.4M14.4 14.4l1.4 1.4M15.8 4.2l-1.4 1.4M5.6 14.4l-1.4 1.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+  <section class="hero wrap">
+    <p class="eyebrow"><span class="eyebrow-rule"></span>Developer utilities · free, no sign-up</p>
+    <h1>Price an LLM feature before you ship it.</h1>
+    <p class="lede">Compare what the same token profile costs on OpenAI, Anthropic, Google and DeepSeek — then publish an <code>/llms.txt</code> that tells an AI agent what your site actually contains.</p>
+    <div class="hero-actions">
+      <button class="btn btn-primary" type="button" data-goto="cost">Calculate a cost
+        <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3 8h9M8.5 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <button class="btn" type="button" data-goto="llms">Build an llms.txt</button>
+    </div>
+    <ul class="hero-points">
+      <li><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3 8.5l3.2 3.2L13 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Nothing leaves the tab</li>
+      <li><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3 8.5l3.2 3.2L13 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Prices checked 20 Nov 2026</li>
+      <li><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3 8.5l3.2 3.2L13 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Says exactly what it validates</li>
+    </ul>
+  </section>
+
+  <div class="wrap">
+    <!-- ================================================== COST PANEL ==== -->
+    <section class="panel" id="panel-cost" role="tabpanel" aria-labelledby="tab-cost">
+
+      <div class="layout">
+        <div class="col-left">
+          <form class="card" id="workloadCard" autocomplete="off" onsubmit="return false">
+            <div class="card-head">
+              <div>
+                <h2>Your workload</h2>
+                <p class="card-sub">One average request, repeated.</p>
+              </div>
+              <button class="link-btn" type="button" id="resetWorkload">Reset</button>
+            </div>
+
+            <div class="field">
+              <span class="field-label" id="tokenModeLabel">Token counts are entered as</span>
+              <div class="seg seg-sm" role="group" aria-labelledby="tokenModeLabel" id="tokenMode">
+                <button type="button" data-mode="tokens" aria-pressed="true">Tokens</button>
+                <button type="button" data-mode="words" aria-pressed="false">Words</button>
+                <button type="button" data-mode="chars" aria-pressed="false">Characters</button>
+              </div>
+              <p class="hint">Switching converts the numbers so the same text stays in the box.</p>
+            </div>
+
+            <div class="field-row">
+              <label class="field">
+                <span class="field-label">Input <em>per request</em></span>
+                <span class="input-wrap">
+                  <input id="inputTokens" data-w="inputTokens" type="text" inputmode="numeric" value="1,500" aria-describedby="inputTokensHint">
+                  <span class="unit" id="inputUnit">tokens</span>
+                </span>
+                <span class="hint" id="inputTokensHint">≈ 1,500 tokens</span>
+              </label>
+              <label class="field">
+                <span class="field-label">Output <em>per request</em></span>
+                <span class="input-wrap">
+                  <input id="outputTokens" data-w="outputTokens" type="text" inputmode="numeric" value="400" aria-describedby="outputTokensHint">
+                  <span class="unit" id="outputUnit">tokens</span>
+                </span>
+                <span class="hint" id="outputTokensHint">≈ 400 tokens</span>
+              </label>
+            </div>
+
+            <div class="field">
+              <label class="field-label" for="cachedShare">Cached input share <em>repeated prompt prefix</em></label>
+              <div class="slider-row">
+                <input id="cachedRange" type="range" min="0" max="100" step="5" value="0" aria-label="Cached input share in percent">
+                <span class="input-wrap input-wrap-tiny">
+                  <input id="cachedShare" data-w="cachedSharePct" type="text" inputmode="numeric" value="0">
+                  <span class="unit">%</span>
+                </span>
+              </div>
+              <p class="hint">0% prices every input token at the full rate. Use 60–90% for a long fixed system prompt.</p>
+            </div>
+
+            <div class="field-row">
+              <label class="field">
+                <span class="field-label">Requests <em>per day</em></span>
+                <span class="input-wrap">
+                  <input id="requestsPerDay" data-w="requestsPerDay" type="text" inputmode="decimal" value="1,000">
+                </span>
+              </label>
+              <label class="field">
+                <span class="field-label">Days <em>per month</em></span>
+                <span class="input-wrap">
+                  <input id="daysPerMonth" data-w="daysPerMonth" type="text" inputmode="numeric" value="30" aria-describedby="daysHint">
+                </span>
+                <span class="hint" id="daysHint">Monthly cost = per day × this.</span>
+              </label>
+            </div>
+
+            <div class="switch-row">
+              <label class="switch">
+                <input type="checkbox" id="useBudget">
+                <span class="switch-track" aria-hidden="true"></span>
+                <span class="switch-text">Reverse from a monthly budget</span>
+              </label>
+            </div>
+            <div class="field field-budget" id="budgetField" hidden>
+              <label class="field-label" for="budget">Monthly budget</label>
+              <span class="input-wrap">
+                <span class="unit unit-lead">$</span>
+                <input id="budget" type="text" inputmode="decimal" value="500">
+              </span>
+              <p class="hint">The table gains a column: how many requests this budget buys on each model.</p>
+            </div>
+          </form>
+
+          <div class="card card-tight" id="estimator">
+            <div class="card-head">
+              <div>
+                <h2>Not sure about tokens?</h2>
+                <p class="card-sub">Paste a real prompt and measure it.</p>
+              </div>
+            </div>
+            <label class="field">
+              <span class="field-label sr-only">Sample text</span>
+              <textarea id="sampleText" rows="4" placeholder="Paste a representative prompt or response here…"></textarea>
+            </label>
+            <div class="estimate-grid" aria-live="polite">
+              <div><span>Characters</span><b id="estChars">0</b></div>
+              <div><span>Words</span><b id="estWords">0</b></div>
+              <div class="est-tokens"><span>≈ Tokens</span><b id="estTokens">0</b></div>
+            </div>
+            <button class="btn btn-sm btn-ghost" type="button" id="useEstimate" disabled>Use as input tokens</button>
+            <p class="fineprint">A planning guide, not a bill: ≈4 characters or ≈0.75 words per English token. Tokenizers differ by model — the newer Claude tokenizer produces about 30% more tokens for the same text.</p>
+          </div>
+        </div>
+
+        <div class="col-right">
+          <div class="stats" id="stats">
+            <div class="stat">
+              <span class="stat-label">Cheapest here</span>
+              <strong class="stat-value" id="statCheapMonth">—</strong>
+              <span class="stat-foot" id="statCheapName">—</span>
+            </div>
+            <div class="stat">
+              <span class="stat-label">Most expensive</span>
+              <strong class="stat-value" id="statPriceyMonth">—</strong>
+              <span class="stat-foot" id="statPriceyName">—</span>
+            </div>
+            <div class="stat stat-accent">
+              <span class="stat-label">Saving per month</span>
+              <strong class="stat-value" id="statSavingMonth">—</strong>
+              <span class="stat-foot" id="statSavingFoot">—</span>
+            </div>
+            <div class="stat">
+              <span class="stat-label" id="statLastLabel">Requests per month</span>
+              <strong class="stat-value" id="statLastValue">—</strong>
+              <span class="stat-foot" id="statLastFoot">—</span>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head">
+              <div>
+                <h2>Monthly cost by model</h2>
+                <p class="card-sub" id="chartSub">At this workload, cheapest first.</p>
+              </div>
+              <span class="legend">
+                <span class="legend-item"><i class="sw sw-cheap"></i>Cheapest</span>
+                <span class="legend-item"><i class="sw sw-pricey"></i>Priciest</span>
+              </span>
+            </div>
+            <div class="chart" id="chart" role="img" aria-labelledby="chartSub"></div>
+            <p class="chart-note" id="chartNote"></p>
+          </div>
+
+          <div class="card card-table">
+            <div class="card-head card-head-wrap">
+              <div>
+                <h2>Full comparison</h2>
+                <p class="card-sub">Prices are USD per 1M tokens and editable in place.</p>
+              </div>
+              <div class="table-tools">
+                <button class="btn btn-sm" type="button" id="copyCsv">Copy CSV</button>
+                <button class="btn btn-sm" type="button" id="downloadCsv">CSV</button>
+                <button class="btn btn-sm" type="button" id="copyMd">Copy table</button>
+                <button class="btn btn-sm" type="button" id="downloadMd">Markdown</button>
+              </div>
+            </div>
+
+            <div class="filter-bar">
+              <div class="chips" id="providerFilter" role="group" aria-label="Filter by provider">
+                <button type="button" class="chip is-active" data-provider="all" aria-pressed="true">All</button>
+                <button type="button" class="chip" data-provider="OpenAI" aria-pressed="false">OpenAI</button>
+                <button type="button" class="chip" data-provider="Anthropic" aria-pressed="false">Anthropic</button>
+                <button type="button" class="chip" data-provider="Google" aria-pressed="false">Google</button>
+                <button type="button" class="chip" data-provider="DeepSeek" aria-pressed="false">DeepSeek</button>
+                <button type="button" class="chip" data-provider="Custom" aria-pressed="false">Custom</button>
+              </div>
+              <div class="filter-side">
+                <label class="check"><input type="checkbox" id="showLegacy"> Show legacy models</label>
+                <button class="link-btn" type="button" id="sortToggle">Sort: cheapest</button>
+                <button class="link-btn" type="button" id="resetPrices">Reset prices</button>
+              </div>
+            </div>
+
+            <div class="table-scroll">
+              <table class="cost-table" id="costTable">
+                <caption class="sr-only">Cost of the current workload on each model, cheapest first</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Model</th>
+                    <th scope="col" class="num">Input</th>
+                    <th scope="col" class="num">Cached</th>
+                    <th scope="col" class="num">Output</th>
+                    <th scope="col" class="num">Per request</th>
+                    <th scope="col" class="num" id="thMonth">Per month</th>
+                    <th scope="col" class="num">Per year</th>
+                    <th scope="col" class="num budget-col" id="thBudget" hidden>Requests / month</th>
+                  </tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+              </table>
+            </div>
+            <p class="table-foot" id="tableFoot"></p>
+
+            <div class="add-model">
+              <button class="btn btn-sm btn-ghost" type="button" id="addModelBtn" aria-expanded="false" aria-controls="modelForm">+ Add a model with your own price</button>
+              <form class="model-form" id="modelForm" hidden autocomplete="off" onsubmit="return false">
+                <label class="field">
+                  <span class="field-label">Model name</span>
+                  <input id="newName" type="text" placeholder="My fine-tune v3" maxlength="60">
+                </label>
+                <label class="field">
+                  <span class="field-label">Input $/1M</span>
+                  <input id="newInput" type="text" inputmode="decimal" placeholder="1.00">
+                </label>
+                <label class="field">
+                  <span class="field-label">Cached $/1M</span>
+                  <input id="newCached" type="text" inputmode="decimal" placeholder="0.10">
+                </label>
+                <label class="field">
+                  <span class="field-label">Output $/1M</span>
+                  <input id="newOutput" type="text" inputmode="decimal" placeholder="4.00">
+                </label>
+                <div class="model-form-actions">
+                  <button class="btn btn-sm btn-primary" type="button" id="saveModel">Add model</button>
+                  <button class="btn btn-sm" type="button" id="cancelModel">Cancel</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================== LLMS PANEL ==== -->
+    <section class="panel" id="panel-llms" role="tabpanel" aria-labelledby="tab-llms" hidden>
+      <div class="layout layout-llms">
+        <div class="col-left">
+          <div class="card">
+            <div class="card-head">
+              <div>
+                <h2>Start from an example</h2>
+                <p class="card-sub">Four shapes that fit most sites. Every URL is example.com — replace them.</p>
+              </div>
+            </div>
+            <div class="preset-grid" id="presets">
+              <button type="button" class="preset" data-preset="saas">
+                <strong>SaaS / API docs</strong><span>Product, docs, pricing, API reference</span>
+              </button>
+              <button type="button" class="preset" data-preset="ecommerce">
+                <strong>E-commerce</strong><span>Catalogue, policies, shipping, returns</span>
+              </button>
+              <button type="button" class="preset" data-preset="personal">
+                <strong>Personal site</strong><span>Writing, projects, CV</span>
+              </button>
+              <button type="button" class="preset" data-preset="opensource">
+                <strong>Open-source project</strong><span>Install, API, contributing</span>
+              </button>
+            </div>
+          </div>
+
+          <form class="card" id="docForm" autocomplete="off" onsubmit="return false">
+            <div class="card-head">
+              <div>
+                <h2>Site details</h2>
+                <p class="card-sub">The first three blocks of the file.</p>
+              </div>
+              <button class="link-btn" type="button" id="clearDoc">Clear all</button>
+            </div>
+
+            <label class="field">
+              <span class="field-label">Site or project name <em>required</em></span>
+              <input id="docTitle" data-path="title" type="text" maxlength="120" placeholder="Acme API">
+              <span class="hint">Becomes the only <code># H1</code> in the file.</span>
+            </label>
+
+            <label class="field">
+              <span class="field-label">One-line summary <em>required</em></span>
+              <input id="docSummary" data-path="summary" type="text" maxlength="400" placeholder="Acme API turns invoices into structured JSON in one request.">
+              <span class="hint">Becomes the <code>&gt; blockquote</code> an agent reads first.</span>
+            </label>
+
+            <label class="field">
+              <span class="field-label">Details <em>optional Markdown</em></span>
+              <textarea id="docDetails" data-path="details" rows="4" placeholder="Base URL, authentication, conventions…"></textarea>
+              <span class="hint">Plain Markdown between the summary and the first section. No headings here — the sections provide those.</span>
+            </label>
+
+            <div class="sections-head">
+              <h3>Sections</h3>
+              <p>Each section becomes an <code>## H2</code> and a list of links.</p>
+            </div>
+            <div id="sectionsList" class="sections"></div>
+            <button class="btn btn-sm btn-ghost btn-block" type="button" id="addSection">+ Add a section</button>
+          </form>
+        </div>
+
+        <div class="col-right">
+          <aside class="preview-card" aria-labelledby="previewTitle">
+            <div class="preview-head">
+              <h2 id="previewTitle" class="sr-only">Generated file</h2>
+              <div class="seg" role="group" aria-label="File to generate" id="fileMode">
+                <button type="button" data-mode="llms.txt" aria-pressed="true">llms.txt</button>
+                <button type="button" data-mode="llms-full.txt" aria-pressed="false">llms-full.txt</button>
+              </div>
+              <span class="preview-stats" id="previewStats">0 lines</span>
+            </div>
+
+            <div class="validation" id="validation" aria-live="polite"></div>
+
+            <pre class="code" id="preview" tabindex="0" aria-label="Generated file contents"></pre>
+
+            <div class="preview-actions">
+              <button class="btn btn-sm btn-primary" type="button" id="copyDoc">Copy file</button>
+              <button class="btn btn-sm" type="button" id="downloadDoc">Download .txt</button>
+              <label class="check check-inline" id="bodiesLabel">
+                <input type="checkbox" id="includeBodies"> Include section bodies in llms.txt
+              </label>
+            </div>
+            <p class="fineprint preview-foot">Saved as <code id="fileName">llms.txt</code> — upload it to the root of your domain (or to a subpath such as <code>/docs/llms.txt</code>).</p>
+          </aside>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ======================================================== READING ==== -->
+  <div class="wrap reading">
+    <section class="read-block">
+      <h2>How the calculator works</h2>
+      <p class="read-lede">Three numbers decide almost everything about an LLM bill: how many tokens go in, how many come back, and how often you call. The rest is arithmetic.</p>
+      <ol class="steps">
+        <li>
+          <span class="step-num">1</span>
+          <h3>Describe one request</h3>
+          <p>Average input and output tokens, and the share of input that repeats from a cached prefix. Paste a real prompt into the estimator if you do not know the token count.</p>
+        </li>
+        <li>
+          <span class="step-num">2</span>
+          <h3>Say how often it runs</h3>
+          <p>Requests per day and days per month. Monthly cost is per-request cost × requests per day × days per month; the annual figure is twelve months of that.</p>
+        </li>
+        <li>
+          <span class="step-num">3</span>
+          <h3>Compare, then check the rate</h3>
+          <p>Every price in the table is an input. Overwrite one with your contract rate, and the chart, totals and exports follow. Or switch on a budget to see how many requests it buys.</p>
+        </li>
+      </ol>
+    </section>
+
+    <section class="read-block">
+      <h2>What an llms.txt file is for</h2>
+      <p>An AI agent reading your site sees navigation, cookie banners and scripts before it sees your documentation. <a href="https://llmstxt.org/" rel="noopener">llms.txt</a> is a small Markdown file at the site root that gives the agent a clean map instead: what the site is, and which Markdown pages are worth fetching.</p>
+      <div class="spec-grid">
+        <div class="spec-card">
+          <h3>The structure</h3>
+          <ul>
+            <li>One <code># H1</code> with the project or site name — the only required part</li>
+            <li>A <code>&gt; blockquote</code> summary in a single line</li>
+            <li>Optional prose: base URL, auth, conventions</li>
+            <li><code>## H2</code> sections, each a list of <code>- [name](url): note</code></li>
+            <li>An optional <code>## Optional</code> section for links an agent can skip</li>
+          </ul>
+        </div>
+        <div class="spec-card">
+          <h3>What this generator checks</h3>
+          <ul>
+            <li>The H1 exists and carries no second <code>#</code></li>
+            <li>The summary is present and collapses to one line</li>
+            <li>Every URL is absolute, http(s) and free of spaces or broken brackets</li>
+            <li>Every link has a name, and every named section has links</li>
+            <li>Repeated URLs, overlong notes and stray headings are flagged</li>
+          </ul>
+        </div>
+      </div>
+      <p class="read-note">llms.txt complements <code>robots.txt</code> and <code>sitemap.xml</code>; it does not replace either. Where several files apply, an agent should use the most specific one — <code>/docs/llms.txt</code> covers everything under <code>/docs/</code>.</p>
+    </section>
+
+    <section class="read-block">
+      <h2>Model price notes</h2>
+      <p>List prices per 1M tokens, read from each provider's pricing page on <strong>20 November 2026</strong>. Prices move; the table below is editable for a reason.</p>
+      <div class="table-scroll">
+        <table class="source-table">
+          <thead>
+            <tr><th scope="col">Provider</th><th scope="col">What is included</th><th scope="col">Source</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>OpenAI</td><td>Standard tier, short context; cached input where published</td><td><a href="https://developers.openai.com/api/docs/pricing" rel="noopener">API pricing</a></td></tr>
+            <tr><td>Anthropic</td><td>Base input, output and cache-hit rates</td><td><a href="https://docs.anthropic.com/en/docs/about-claude/pricing" rel="noopener">Claude pricing</a></td></tr>
+            <tr><td>Google</td><td>Paid tier, standard serving; launch pricing noted where it expires</td><td><a href="https://ai.google.dev/gemini-api/docs/pricing" rel="noopener">Gemini pricing</a></td></tr>
+            <tr><td>DeepSeek</td><td>Peak rate; off-peak is half price</td><td><a href="https://api-docs.deepseek.com/quick_start/pricing" rel="noopener">Models &amp; pricing</a></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="read-note">Models marked <em>legacy</em> have left the current price sheet and keep their last published list price for comparison. Batch and flex tiers, long-context surcharges, cache-write fees, thinking tokens billed as output, and minimum charges are not modelled — check the provider for those.</p>
+    </section>
+
+    <section class="read-block">
+      <h2>Questions</h2>
+      <div class="faq">
+        <details>
+          <summary>How is the monthly cost calculated?</summary>
+          <p>Each request is priced in three parts: fresh input at the input rate, the cached share of the input at the cached-input rate, and output at the output rate. Prices are per million tokens, so the sum is divided by one million. Multiply by requests per day and days per month for the month, and by twelve for the year.</p>
+        </details>
+        <details>
+          <summary>Are these the real list prices?</summary>
+          <p>They were copied from each provider's public pricing page on 20 November 2026 and every field is editable, so you can enter a contract rate or a price change. Legacy models keep their last published list price and are hidden unless you ask for them. Confirm billing-critical numbers with the provider.</p>
+        </details>
+        <details>
+          <summary>What is a cached input token?</summary>
+          <p>Providers let you reuse a prompt prefix that was sent recently — a system prompt, a document, a tool schema — and charge less when those tokens hit the cache. Enter the share of your input that repeats; 0% prices everything as fresh input.</p>
+        </details>
+        <details>
+          <summary>How accurate is the token estimate?</summary>
+          <p>It uses the usual English rule of thumb: about four characters or 0.75 words per token. It is a planning aid, not a bill. Tokenizers differ by model, and the newer Claude tokenizer produces roughly 30% more tokens for the same text, so check a provider-side counter for anything billing-critical.</p>
+        </details>
+        <details>
+          <summary>Is my data uploaded anywhere?</summary>
+          <p>No. There is no backend, no analytics, no third-party script and no web font from a CDN. The calculations and the file generation run in the tab, and the page keeps working offline after it has loaded.</p>
+        </details>
+        <details>
+          <summary>What is the difference between llms.txt and llms-full.txt?</summary>
+          <p><code>llms.txt</code> is the small index: an agent reads it, then fetches only the pages it needs. <code>llms-full.txt</code> is the expanded variant that carries the documentation text itself, so one fetch is enough. This generator keeps section bodies out of <code>llms.txt</code> and includes them in <code>llms-full.txt</code>.</p>
+        </details>
+        <details>
+          <summary>Where do I put the file?</summary>
+          <p>At the root of the domain as <code>/llms.txt</code>, or at any subpath to cover just those pages, such as <code>/docs/llms.txt</code>. You can point at it with a <code>rel="describedby"</code> link or an HTTP <code>Link:</code> header. The file must be served as text; the download here is already a plain <code>.txt</code>.</p>
+        </details>
+        <details>
+          <summary>Does llms.txt replace robots.txt or sitemap.xml?</summary>
+          <p>No. <code>robots.txt</code> says which crawlers may fetch what, <code>sitemap.xml</code> lists pages for search engines, and <code>llms.txt</code> guides an agent that is already allowed in. Most sites want all three.</p>
+        </details>
+        <details>
+          <summary>Why does the validator reject relative URLs?</summary>
+          <p>Because an agent reads the file from outside your site and cannot resolve <code>/docs/api</code> against a base it does not know. Absolute URLs, ideally the Markdown version of each page, are unambiguous.</p>
+        </details>
+        <details>
+          <summary>Can I use this for a client site?</summary>
+          <p>Yes. There is nothing to sign up for, no attribution requirement and no markup on your prices. The generated file is yours.</p>
+        </details>
+      </div>
+    </section>
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <strong>LLM Cost &amp; llms.txt</strong>
+      <p>Two small tools for people who ship with language models. Built as a static page; no account, no server, no tracking.</p>
+    </div>
+    <nav class="footer-links" aria-label="Footer">
+      <a href="privacy.html">Privacy</a>
+      <a href="https://llmstxt.org/" rel="noopener">llms.txt spec</a>
+      <a href="#main">Back to top</a>
+    </nav>
+    <p class="footer-fine">Prices are published list prices, checked 20 November 2026, and are not an offer. Model names belong to their providers; this page is not affiliated with any of them. Contact: <a href="mailto:contact@example.com">contact@example.com</a> (placeholder).</p>
+  </div>
+</footer>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="assets/engine.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>
