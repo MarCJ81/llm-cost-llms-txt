@@ -123,3 +123,21 @@ is published elsewhere. The contact address in `privacy.html` and the footer is
 `goodday810202@gmail.com`.
 
 GitHub Pages: publish the contents of this folder as the site root (`.nojekyll` is included).
+
+## Design system — Direction A (Crisp Bento SaaS)
+
+Applied 2026-11-22 to unify the three overseas apps. Structure and behaviour are unchanged; only the skin follows Direction A.
+
+| Token | Value |
+| --- | --- |
+| Page / surface | `#FAFAFA` / `#FFFFFF` |
+| Hairline | 1px `#E7E8EA` (strong `#D7D9DD`) |
+| Tile radius | 16px (buttons 12px, pills 999px) |
+| Ink | `#0C0D0F` (secondary `#3C4045`, muted `#6B7076`) |
+| Accent | single cobalt `#2F5BFF` (hover `#2445C9`, soft `#EEF2FF`) |
+| Headline | sans-serif 800, tracking -0.04em |
+| State colours | ok `#0B7A55` · warn `#A9550A` · error `#B4211C` — meaning only |
+| Dark | page `#0A0B0D` · surface `#121317` · line `#24262B` · accent `#8AA4FF` |
+
+- Contrast ≥ 4.5:1: measured on light, dark, mobile and the privacy page — 0 failures.
+- Fonts stay self-hosted (0 external requests); the dotted page grid was removed for the flat Direction A canvas.
