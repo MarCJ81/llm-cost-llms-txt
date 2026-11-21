@@ -119,7 +119,7 @@ Optional Markdown details.
 
 Nothing has been pushed or published. The canonical URL, Open Graph URL, `sitemap.xml` and
 `robots.txt` assume `https://marcj81.github.io/llm-cost-llms-txt/`; change them if the folder
-is published elsewhere. The contact address in `privacy.html` and the footer is the
-placeholder `contact@example.com` and must be replaced before publishing.
+is published elsewhere. The contact address in `privacy.html` and the footer is
+`goodday810202@gmail.com`.
 
 GitHub Pages: publish the contents of this folder as the site root (`.nojekyll` is included).
