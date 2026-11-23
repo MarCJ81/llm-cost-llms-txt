@@ -141,3 +141,23 @@ Applied 2026-11-22 to unify the three overseas apps. Structure and behaviour are
 
 - Contrast ≥ 4.5:1: measured on light, dark, mobile and the privacy page — 0 failures.
 - Fonts stay self-hosted (0 external requests); the dotted page grid was removed for the flat Direction A canvas.
+
+
+## 2차 업그레이드 (2026-11-23)
+
+### 정확한 토큰 수 (`assets/vendor/gpt-tokenizer-*.js`) — gpt-tokenizer 4.1.2 (MIT)
+- 기존 `문자/4` 근사치 대신 **실제 BPE 병합표**로 셉니다.
+  - `o200k_base`(GPT-4o·4.1·o 시리즈, 2.8MB)
+  - `cl100k_base`(GPT-4·3.5, 1.0MB)
+- 두 파일 모두 `Count exactly`를 누를 때만 받습니다(첫 화면 용량 0 증가).
+- 결과에 근사치 대비 차이(%)를 함께 보여 줍니다.
+
+### llms.txt 스펙 재검증 (`validateSpecText`)
+- 생성된 파일을 스펙으로 **다시 읽어** 확인합니다.
+  - 첫 줄 `# 이름` 하나, 그다음 `> 한 줄 요약`
+  - `## 섹션`과 `- [이름](절대 URL): 설명` 형식
+  - H3 이하 제목·상대 경로·이름 없는 링크는 오류
+- 결과를 검증 패널에 `Spec re-read: ...`로 표시합니다.
+
+### 검증
+- `node test.js` 93건 통과 · `python3 uitest.py`(브라우저 실측)

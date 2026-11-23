@@ -186,6 +186,131 @@
     return { chars: chars, words: words, lines: lines, tokens: chars > 0 ? Math.ceil(chars / CHARS_PER_TOKEN) : 0 };
   }
 
+  /* ------------------------------------------------ exact token count -- */
+
+  /*
+   * 문자/4 근사치는 영어 산문에서만 맞는다. 코드·JSON·한국어는 크게 틀린다.
+   * gpt-tokenizer(MIT)의 실제 BPE 병합표를 필요할 때만 받아 정확히 센다.
+   *  · o200k_base: GPT-4o · GPT-4.1 · o 시리즈
+   *  · cl100k_base: GPT-4 · GPT-3.5 (다른 모델의 근사 기준으로도 쓴다)
+   */
+  var TOKENIZER_FILES = {
+    o200k: { src: 'assets/vendor/gpt-tokenizer-o200k.js', global: 'GPTTokO200K', label: 'o200k_base', bytes: 2816266 },
+    cl100k: { src: 'assets/vendor/gpt-tokenizer-cl100k.js', global: 'GPTTokCL100K', label: 'cl100k_base', bytes: 1047230 },
+  };
+  var tokenizerLoading = {};
+
+  function loadTokenizer(encoding) {
+    var enc = TOKENIZER_FILES[encoding] ? encoding : 'o200k';
+    var info = TOKENIZER_FILES[enc];
+    var root = typeof globalThis !== 'undefined' ? globalThis : (typeof self !== 'undefined' ? self : null);
+    if (!root) return Promise.reject(new Error('no_global'));
+    if (root[info.global]) return Promise.resolve(root[info.global]);
+    if (tokenizerLoading[enc]) return tokenizerLoading[enc];
+    if (!root.document) return Promise.reject(new Error('no_document'));
+    tokenizerLoading[enc] = new Promise(function (resolve, reject) {
+      var script = root.document.createElement('script');
+      script.src = info.src;
+      script.async = true;
+      script.onload = function () {
+        if (root[info.global]) resolve(root[info.global]);
+        else reject(new Error('tokenizer_global_missing'));
+      };
+      script.onerror = function () { tokenizerLoading[enc] = null; reject(new Error('tokenizer_load_failed')); };
+      root.document.head.appendChild(script);
+    });
+    return tokenizerLoading[enc];
+  }
+
+  /** 정확한 토큰 수. 실패하면 근사치를 estimate:true 로 돌려준다(무음 실패 없음). */
+  function countExactTokens(text, encoding) {
+    var t = str(text);
+    var enc = TOKENIZER_FILES[encoding] ? encoding : 'o200k';
+    var approx = textStats(t).tokens;
+    return loadTokenizer(enc).then(function (api) {
+      var n = api.countTokens(t);
+      return {
+        ok: true, tokens: n, encoding: enc, encodingLabel: TOKENIZER_FILES[enc].label,
+        approx: approx, delta: approx ? Math.round(((n - approx) / approx) * 1000) / 10 : 0,
+      };
+    }).catch(function (err) {
+      return { ok: false, tokens: approx, encoding: enc, approx: approx, estimate: true, reason: (err && err.message) || 'unknown' };
+    });
+  }
+
+  /* ------------------------------------------------- llms.txt spec check -- */
+
+  /**
+   * 생성된(또는 붙여넣은) llms.txt 본문을 스펙 기준으로 다시 읽어 검증한다.
+   * 형식: 1행 "# 이름" → 2행 "" → 3행 "> 한 줄 요약" → 빈 줄 → "## 섹션" → "- [이름](URL): 설명"
+   */
+  function validateSpecText(text) {
+    var t = str(text).replace(/\r\n/g, '\n');
+    var errors = [];
+    var warnings = [];
+    var lines = t.split('\n');
+    var links = 0;
+    var sections = 0;
+
+    if (!t.trim()) {
+      return { ok: false, errors: [{ line: 0, message: 'File is empty.' }], warnings: [], stats: { lines: 0, sections: 0, links: 0 } };
+    }
+
+    var first = -1;
+    for (var i = 0; i < lines.length; i += 1) {
+      if (lines[i].trim()) { first = i; break; }
+    }
+    if (first < 0 || !/^#\s+\S/.test(lines[first])) {
+      errors.push({ line: first + 1, message: 'The file must start with a single H1: "# Name".' });
+    } else if (/^##/.test(lines[first])) {
+      errors.push({ line: first + 1, message: 'The first heading is H2; llms.txt starts with one H1.' });
+    }
+
+    var quoteAt = -1;
+    for (var j = first + 1; j < lines.length; j += 1) {
+      if (!lines[j].trim()) continue;
+      quoteAt = j;
+      break;
+    }
+    if (quoteAt < 0 || lines[quoteAt].trim().charAt(0) !== '>') {
+      errors.push({ line: quoteAt + 1, message: 'A one-line blockquote summary (starting with ">") must come right after the H1.' });
+    }
+
+    lines.forEach(function (line, index) {
+      var trimmed = line.trim();
+      if (!trimmed) return;
+      if (/^#{3,6}\s/.test(trimmed)) {
+        errors.push({ line: index + 1, message: 'Only H1 and H2 are used in llms.txt; this heading is deeper.' });
+      } else if (/^##\s+\S/.test(trimmed)) {
+        sections += 1;
+      } else if (/^##\s*$/.test(trimmed)) {
+        errors.push({ line: index + 1, message: 'Section heading has no name.' });
+      } else if (/^[-*]\s+/.test(trimmed)) {
+        var m = /^[-*]\s+\[([^\]]+)\]\(([^)]+)\)(\s*[:\u2014-]\s*(.*))?$/.exec(trimmed);
+        if (!m) {
+          warnings.push({ line: index + 1, message: 'List item is not a markdown link; agents read "- [Name](URL): note".' });
+          return;
+        }
+        links += 1;
+        if (!m[1].trim()) errors.push({ line: index + 1, message: 'Link has no name.' });
+        if (!/^https?:\/\/\S+$/i.test(m[2].trim())) {
+          errors.push({ line: index + 1, message: 'Link URL must be absolute (https://…).' });
+        }
+      }
+    });
+
+    if (!sections) warnings.push({ line: 0, message: 'No "## Section" yet — llms.txt needs somewhere to point.' });
+    if (!links) warnings.push({ line: 0, message: 'No links yet — an agent has nothing to fetch.' });
+    if (t.length > 50000) warnings.push({ line: 0, message: 'Files over ~50 KB are usually truncated by tooling; split it or use llms-full.txt.' });
+
+    return {
+      ok: errors.length === 0,
+      errors: errors,
+      warnings: warnings,
+      stats: { lines: lines.length, sections: sections, links: links, chars: t.length },
+    };
+  }
+
   /* ---------------------------------------------------------- workload -- */
 
   function normalizeWorkload(workload) {
@@ -880,6 +1005,8 @@
     generateLlmsTxt: generateLlmsTxt,
     isValidUrl: isValidUrl,
     validateDoc: validateDoc,
+    countExactTokens: countExactTokens,
+    validateSpecText: validateSpecText,
     preset: preset,
     addSection: addSection,
     removeSection: removeSection,

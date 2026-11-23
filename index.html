@@ -278,8 +278,16 @@
               <div><span>Words</span><b id="estWords">0</b></div>
               <div class="est-tokens"><span>≈ Tokens</span><b id="estTokens">0</b></div>
             </div>
+            <div class="exact-row">
+              <select id="exactEncoding" aria-label="Tokenizer">
+                <option value="o200k">o200k_base (GPT-4o/4.1)</option>
+                <option value="cl100k">cl100k_base (GPT-4/3.5)</option>
+              </select>
+              <button class="btn btn-sm" type="button" id="exactCount">Count exactly</button>
+              <span class="exact-value" id="exactValue" aria-live="polite"></span>
+            </div>
             <button class="btn btn-sm btn-ghost" type="button" id="useEstimate" disabled>Use as input tokens</button>
-            <p class="fineprint">A planning guide, not a bill: ≈4 characters or ≈0.75 words per English token. Tokenizers differ by model — the newer Claude tokenizer produces about 30% more tokens for the same text.</p>
+            <p class="fineprint">A planning guide, not a bill: ≈4 characters or ≈0.75 words per English token. Tokenizers differ by model — the newer Claude tokenizer produces about 30% more tokens for the same text. “Count exactly” loads the real BPE table (2.8 MB for o200k, 1 MB for cl100k) once and shows the true count.</p>
           </div>
         </div>
 
@@ -483,6 +491,7 @@
             <div class="preview-actions">
               <button class="btn btn-sm btn-primary" type="button" id="copyDoc">Copy file</button>
               <button class="btn btn-sm" type="button" id="downloadDoc">Download .txt</button>
+              <button class="btn btn-sm" type="button" id="exactPreview">Count exactly</button>
               <label class="check check-inline" id="bodiesLabel">
                 <input type="checkbox" id="includeBodies"> Include section bodies in llms.txt
               </label>

@@ -828,3 +828,12 @@ input.is-invalid, textarea.is-invalid {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; }
 }
+
+/* exact token count row */
+.exact-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0 6px; }
+.exact-row select { font: inherit; font-size: 12px; padding: 6px 8px; border: 1px solid var(--line, #d8dade); border-radius: 8px; background: #fff; }
+.exact-value { font-size: 12px; font-weight: 700; color: var(--ink-2, #333); }
+.v-spec { margin-top: 8px; font-size: 12px; font-weight: 600; }
+.v-spec.is-ok { color: var(--ok, #1a7f4b); }
+.v-spec.is-warn { color: var(--warn, #9a6b00); }
+.v-spec.is-error { color: var(--danger, #b3261e); }

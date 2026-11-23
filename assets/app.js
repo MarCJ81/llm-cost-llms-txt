@@ -260,6 +260,42 @@
   }
   sample.addEventListener('input', updateEstimate);
 
+  $('#exactCount').addEventListener('click', function () {
+    var btn = $('#exactCount');
+    var out = $('#exactValue');
+    var text = sample.value;
+    if (!text.trim()) { out.textContent = 'Paste some text first.'; return; }
+    btn.disabled = true;
+    out.textContent = 'Loading tokenizer\u2026';
+    E.countExactTokens(text, $('#exactEncoding').value).then(function (res) {
+      btn.disabled = false;
+      if (res.ok) {
+        var delta = res.delta === 0 ? '' : ' (' + (res.delta > 0 ? '+' : '') + res.delta + '% vs ≈)';
+        out.textContent = E.formatNumber(res.tokens) + ' tokens · ' + res.encodingLabel + delta;
+        out.dataset.exact = String(res.tokens);
+      } else {
+        out.textContent = 'Could not load the tokenizer — showing the ≈ estimate.';
+      }
+    });
+  });
+
+  $('#exactPreview').addEventListener('click', function () {
+    var btn = $('#exactPreview');
+    var text = E.generateLlmsTxt(state.doc, { mode: state.mode, includeBodies: state.includeBodies });
+    if (!text) return;
+    btn.disabled = true;
+    btn.textContent = 'Counting…';
+    E.countExactTokens(text, 'o200k').then(function (res) {
+      btn.disabled = false;
+      btn.textContent = 'Count exactly';
+      var stats = E.textStats(text.replace(/\n$/, ''));
+      $('#previewStats').textContent = stats.lines + (stats.lines === 1 ? ' line' : ' lines') +
+        ' · ' + E.formatNumber(stats.chars) + ' chars · ≈' + E.formatNumber(stats.tokens) + ' tokens' +
+        (res.ok ? ' · exact ' + E.formatNumber(res.tokens) + ' (o200k)' : '');
+      toast(res.ok ? 'Exact count: ' + E.formatNumber(res.tokens) + ' tokens (o200k_base)' : 'Tokenizer could not load');
+    });
+  });
+
   $('#useEstimate').addEventListener('click', function () {
     var tokens = E.textStats(sample.value).tokens;
     if (!tokens) return;
@@ -640,9 +676,10 @@
     renderSections();
   }
 
-  function renderValidation(result) {
+  function renderValidation(result, specText) {
     var box = $('#validation');
     var items = [];
+    var specNote = specText === undefined ? '' : specCheckHtml(specText);
     if (result.errors.length) {
       box.className = 'validation is-error';
       items.push('<strong>' + result.errors.length + (result.errors.length === 1 ? ' issue' : ' issues') + ' to fix</strong>');
@@ -661,7 +698,19 @@
       box.className = 'validation is-ok';
       items.push('<strong>Ready to publish.</strong> The file passes every structural check.');
     }
-    box.innerHTML = items.join('');
+    box.innerHTML = items.join('') + specNote;
+  }
+
+  /* 생성된 본문을 스펙으로 다시 읽어 확인한 결과(엔진 검사와 별개) */
+  function specCheckHtml(text) {
+    var spec = E.validateSpecText(text);
+    if (!spec.stats.lines) return '';
+    var cls = spec.ok ? (spec.warnings.length ? 'v-spec is-warn' : 'v-spec is-ok') : 'v-spec is-error';
+    var label = spec.ok
+      ? (spec.warnings.length ? 'Spec re-read: ' + spec.warnings.length + ' note(s)' : 'Spec re-read: valid llms.txt')
+      : 'Spec re-read: ' + spec.errors.length + ' problem(s)';
+    return '<div class="' + cls + '">' + label +
+      ' · ' + spec.stats.sections + ' section(s) · ' + spec.stats.links + ' link(s)</div>';
   }
 
   function markInvalid(result) {
@@ -685,7 +734,7 @@
     $('#previewStats').textContent = stats.lines + (stats.lines === 1 ? ' line' : ' lines') +
       ' · ' + E.formatNumber(stats.chars) + ' chars · ≈' + E.formatNumber(stats.tokens) + ' tokens';
     var result = E.validateDoc(state.doc);
-    renderValidation(result);
+    renderValidation(result, text);
     markInvalid(result);
     $('#copyDoc').disabled = !text;
     $('#downloadDoc').disabled = !text;
