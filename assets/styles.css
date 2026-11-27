@@ -837,3 +837,31 @@ input.is-invalid, textarea.is-invalid {
 .v-spec.is-ok { color: var(--ok, #1a7f4b); }
 .v-spec.is-warn { color: var(--warn, #9a6b00); }
 .v-spec.is-error { color: var(--danger, #b3261e); }
+
+/* ------------------------------------------------------------------ Language switch (KO / EN) */
+.lang-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--line, #E4E5E8);
+  border-radius: 9px;
+  background: var(--surface-2, #F4F5F6);
+}
+.lang-btn {
+  border: 0;
+  background: transparent;
+  color: var(--muted, #6B7076);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 7px 9px;
+  border-radius: 7px;
+  cursor: pointer;
+}
+.lang-btn:hover { color: var(--ink, #0C0D0F); }
+.lang-btn.is-on { background: var(--surface, #FFFFFF); color: var(--ink, #0C0D0F); box-shadow: 0 1px 2px rgba(12, 13, 15, 0.08); }
+@media (max-width: 720px) {
+  .lang-btn { padding: 6px 7px; font-size: 11.5px; }
+}

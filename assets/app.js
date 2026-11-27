@@ -8,6 +8,9 @@
   var E = window.LLMEngine;
   if (!E) return;
 
+  function ko() { return !!(window.OneTapLang && window.OneTapLang.isKo && window.OneTapLang.isKo()); }
+  function tr(en, koText) { return ko() ? koText : en; }
+
   var $ = function (sel, root) { return (root || document).querySelector(sel); };
   var $$ = function (sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); };
 
@@ -177,8 +180,8 @@
     $('#budget').value = E.formatNumber(state.budget, state.budget % 1 ? 2 : 0);
     $('#inputUnit').textContent = tokenUnits[state.tokenMode];
     $('#outputUnit').textContent = tokenUnits[state.tokenMode];
-    $('#inputTokensHint').textContent = '≈ ' + E.formatNumber(inTokens) + ' tokens per request';
-    $('#outputTokensHint').textContent = '≈ ' + E.formatNumber(outTokens) + ' tokens per request';
+    $('#inputTokensHint').textContent = '≈ ' + E.formatNumber(inTokens) + tr(' tokens per request', ' 토큰/요청');
+    $('#outputTokensHint').textContent = '≈ ' + E.formatNumber(outTokens) + tr(' tokens per request', ' 토큰/요청');
     $('#budgetField').hidden = !state.useBudget;
     $$('#tokenMode button').forEach(function (button) {
       button.setAttribute('aria-pressed', button.dataset.mode === state.tokenMode ? 'true' : 'false');
@@ -416,13 +419,15 @@
     var note = [];
     if (rows.length) {
       var wl = tokenWorkload();
-      note.push('Monthly cost includes ' + E.formatNumber(wl.requestsPerDay * wl.daysPerMonth) + ' requests.');
+      note.push(tr('Monthly cost includes ' + E.formatNumber(wl.requestsPerDay * wl.daysPerMonth) + ' requests.',
+        '월 비용에는 ' + E.formatNumber(wl.requestsPerDay * wl.daysPerMonth) + '건의 요청이 포함됩니다.'));
     }
     if (state.useBudget && state.budget > 0) {
       note.push('Dashed line: your ' + E.money(state.budget) + ' budget.');
       if (max <= state.budget) note.push('Every model here fits inside it.');
     }
-    if (!state.showLegacy) note.push('Legacy models are hidden — tick “Show legacy models” to compare them.');
+    if (!state.showLegacy) note.push(tr('Legacy models are hidden — tick “Show legacy models” to compare them.',
+      '이전 모델은 숨겨져 있습니다. “이전 모델 보기”를 켜면 비교할 수 있습니다.'));
     $('#chartNote').textContent = note.join(' ');
   }
 
@@ -440,13 +445,13 @@
     } else {
       var saving = E.savings(rows);
       $('#statCheapMonth').innerHTML = E.money(ext.cheapest.cost.perMonth) + '<small> /mo</small>';
-      $('#statCheapName').textContent = ext.cheapest.model.name + ' · ' + E.money(ext.cheapest.cost.perYear) + '/year';
+      $('#statCheapName').textContent = ext.cheapest.model.name + ' · ' + E.money(ext.cheapest.cost.perYear) + tr('/year', '/년');
       $('#statPriceyMonth').innerHTML = E.money(ext.priciest.cost.perMonth) + '<small> /mo</small>';
       if (saving) {
         var factor = saving.factor === Infinity ? '∞' : E.formatNumber(saving.factor, saving.factor >= 10 ? 0 : 1);
-        $('#statPriceyName').textContent = ext.priciest.model.name + ' · ' + factor + '× the cheapest';
+        $('#statPriceyName').textContent = ext.priciest.model.name + ' · ' + factor + tr('× the cheapest', '× 최저가');
         $('#statSavingMonth').innerHTML = E.money(saving.perMonth) + '<small> /mo</small>';
-        $('#statSavingFoot').textContent = E.formatNumber(saving.percent, 0) + '% less · ' + E.money(saving.perYear) + '/year';
+        $('#statSavingFoot').textContent = E.formatNumber(saving.percent, 0) + tr('% less · ', '% 절감 · ') + E.money(saving.perYear) + tr('/year', '/년');
       } else {
         $('#statPriceyName').textContent = ext.priciest.model.name;
         $('#statSavingMonth').textContent = '—';
@@ -470,7 +475,8 @@
     } else {
       $('#statLastLabel').textContent = 'Requests per month';
       $('#statLastValue').innerHTML = E.formatNumber(w.requestsPerDay * w.daysPerMonth) + '<small> calls</small>';
-      $('#statLastFoot').textContent = E.formatNumber(w.requestsPerDay) + '/day × ' + w.daysPerMonth + ' days';
+      $('#statLastFoot').textContent = tr(E.formatNumber(w.requestsPerDay) + '/day × ' + w.daysPerMonth + ' days',
+        '하루 ' + E.formatNumber(w.requestsPerDay) + '건 × ' + w.daysPerMonth + '일');
     }
   }
 
@@ -871,4 +877,13 @@
   renderDocForm();
   refreshPreview();
   setTab(window.location.hash === '#llms' ? 'llms' : 'cost');
+
+  document.addEventListener('langchange', function () {
+    syncWorkloadInputs();
+    renderAll();
+    updateEstimate();
+    renderDocForm();
+    refreshPreview();
+    setTab(state.tab);
+  });
 })();

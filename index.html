@@ -147,6 +147,10 @@
       <span class="local-chip" title="No network requests, no upload">
         <span class="dot"></span> Runs in your browser
       </span>
+      <div class="lang-switch" role="group" aria-label="Language">
+        <button type="button" class="lang-btn" data-lang="ko" aria-pressed="false">KO</button>
+        <button type="button" class="lang-btn is-on" data-lang="en" aria-pressed="true">EN</button>
+      </div>
       <button class="icon-btn" id="themeToggle" type="button" aria-label="Switch to dark theme" aria-pressed="false">
         <svg class="icon-moon" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M16.5 12.4A7 7 0 0 1 7.6 3.5a7 7 0 1 0 8.9 8.9z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
         <svg class="icon-sun" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><circle cx="10" cy="10" r="3.6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M10 1.8v2M10 16.2v2M1.8 10h2M16.2 10h2M4.2 4.2l1.4 1.4M14.4 14.4l1.4 1.4M15.8 4.2l-1.4 1.4M5.6 14.4l-1.4 1.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
@@ -159,7 +163,7 @@
   <section class="hero wrap">
     <p class="eyebrow"><span class="eyebrow-rule"></span>Developer utilities · free, no sign-up</p>
     <h1>Price an LLM feature before you ship it.</h1>
-    <p class="lede">Compare what the same token profile costs on OpenAI, Anthropic, Google and DeepSeek — then publish an <code>/llms.txt</code> that tells an AI agent what your site actually contains.</p>
+    <p class="lede" data-ko-html="같은 토큰 사용량이 OpenAI·Anthropic·Google·DeepSeek에서 얼마인지 비교하고, AI 에이전트에게 사이트 내용을 알려 주는 <code>/llms.txt</code>까지 바로 만들어 공개하세요.">Compare what the same token profile costs on OpenAI, Anthropic, Google and DeepSeek — then publish an <code>/llms.txt</code> that tells an AI agent what your site actually contains.</p>
     <div class="hero-actions">
       <button class="btn btn-primary" type="button" data-goto="cost">Calculate a cost
         <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3 8h9M8.5 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -639,6 +643,7 @@
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+<script src="assets/i18n.js"></script>
 <script src="assets/engine.js"></script>
 <script src="assets/app.js"></script>
 </body>
